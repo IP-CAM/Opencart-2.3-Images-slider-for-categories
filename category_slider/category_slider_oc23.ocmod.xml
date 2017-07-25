@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>Category Top Slider</name>
+    <code>Category_top_slider_devlex</code>
+    <version>2.3</version>
+    <author>Devlex.pro</author>
+    <link>http://devlex.pro</link>
+    <file path="admin/view/template/catalog/category_form.tpl">
+        <operation>
+            <search><![CDATA[<li><a href="#tab-design" data-toggle="tab"><?php echo $tab_design; ?></a></li>]]></search>
+            <add position="before" ><![CDATA[
+            <li><a href="#tab-slider" data-toggle="tab"><?php echo $tab_slider; ?></a></li>
+            ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[<div class="tab-pane" id="tab-design">]]></search>
+            <add position="before" ><![CDATA[
+            <div class="tab-pane" id="tab-slider">
+              <div class="form-group">
+                <label class="col-sm-2 control-label"><?php echo $entry_slider; ?></label>
+                <div class="col-sm-10"><span class="btn btn-primary addSlide" style="margin: 0 0 15px;font-size: 11pt;cursor:pointer;"><?=$text_add?></span></div>
+                <?php
+                if(!empty($slides)){
+                $n=0;
+                foreach($slides as $slide){
+                if(empty($slide)) continue;
+                ?>
+                <div class="row clearfix">
+                <div class="col-sm-4 col-sm-offset-2" style="margin-bottom:10px;"><a href="" id="thumb-slide<?=($n>0) ? '-'.$n : ''?>" data-toggle="image" class="img-thumbnail"><img src="<?php echo $slide['thumb']; ?>" alt="" title="" data-placeholder="<?php echo $placeholder; ?>" /></a>
+                  <input type="hidden" name="slide[]" value="<?php echo $slide['image']; ?>" id="input-slide<?=($n>0) ? '-'.$n : ''?>" />
+                </div>
+                <div class="col-sm-6">
+                <input type="text" name="slideLink[]" placeholder="<?=$text_slide_link?>" class="form-control" value="<?php echo $slide['link']; ?>" />
+                </div>
+                </div>
+                <?php
+                $n++;
+                }
+                }else{
+                ?>
+                <div class="row clearfix">
+                <div class="col-sm-4 col-sm-offset-2" style="margin-bottom:10px;">
+                    <a href="" id="thumb-slide" data-toggle="image" class="img-thumbnail">
+                        <img src="<?php echo $thumbSlide; ?>" alt="" title="" data-placeholder="<?php echo $placeholder; ?>" />
+                    </a>
+                    <input type="hidden" name="slide[]" value="" id="input-slide" />
+                </div>
+                <div class="col-sm-6">
+                <input type="text" name="slideLink[]" placeholder="<?=$text_slide_link?>" class="form-control" value="" />
+                </div>
+                </div>
+                <?php
+                }
+                ?>
+              </div>
+            </div>
+            ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[$('#language a:first').tab('show');]]></search>
+            <add position="before" ><![CDATA[
+            $('.addSlide').on('click', function(){
+                var num = $('#tab-slider').find('.img-thumbnail').length;
+                $(this).parent().parent().append('<div class="row clearfix"><div class="col-sm-4 col-sm-offset-2" style="margin-bottom:10px;"><a href="" id="thumb-slide-'+num+'" data-toggle="image" class="img-thumbnail"><img src="<?php echo $thumbSlide; ?>" alt="" title="" data-placeholder="<?php echo $placeholder; ?>" /></a><input type="hidden" name="slide[]" value="" id="input-slide-'+num+'" /></div><div class="col-sm-6"><input type="text" name="slideLink[]" placeholder="<?=$text_slide_link?>" class="form-control" value="" /></div></div>');
+            })
+            ]]></add>
+        </operation>
+    </file>
+    <file path="admin/language/en-gb/catalog/category.php">
+        <operation>
+            <search><![CDATA[$_['entry_layout']]]></search>
+            <add position="before" ><![CDATA[
+                $_['entry_slider']           = 'Category slides';
+                $_['entry_tab_slider']       = 'Slider';
+                $_['text_slide_link']        = 'Slide link';
+                $_['text_slide_add']         = 'Add slide';
+                ]]></add>
+        </operation>
+    </file>
+    <file path="admin/controller/catalog/category.php">
+        <operation>
+            <search><![CDATA[$data['entry_layout'] = $this->language->get('entry_layout');]]></search>
+            <add position="after" ><![CDATA[
+                    $data['entry_slider'] = $this->language->get('entry_slider');
+                    $data['tab_slider'] = $this->language->get('entry_tab_slider');
+                    $data['text_slide_link'] = $this->language->get('text_slide_link');
+                    $data['text_add'] = $this->language->get('text_add');
+                    ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[$data['placeholder']]]></search>
+            <add position="before" ><![CDATA[
+                    $data['thumbSlide'] = $this->model_tool_image->resize('no_image.png', 100, 100);
+                    $this->load->model('setting/setting');
+                    $settSlider = $this->config->get('categorySlider'.$this->request->get['category_id']);
+                    $settSlider = unserialize($settSlider);
+                    if (isset($this->request->post['slide'])) {
+                        $data['slides'] = $this->request->post['slide'];
+                    } elseif (!empty($settSlider)) {
+                        $data['slides'] = $settSlider['slide'];
+                    } else {
+                        $data['slides'] = [];
+                    }
+                    if (isset($this->request->post['slideLink'])) {
+                        $data['slideLink'] = $this->request->post['slideLink'];
+                    } elseif (!empty($settSlider)) {
+                        $data['slideLink'] = $settSlider['slideLink'];
+                    } else {
+                        $data['slideLink'] = [];
+                    }
+                    $slider = [];
+                    foreach($data['slides'] as $k => $v){
+                        if(empty($v)) continue;
+                       $slider[] = [
+                        	'image' => $v,
+	                        'thumb' => $this->model_tool_image->resize($v, 100, 100),
+	                        'link' => (!empty($data['slideLink'][$k])) ? $data['slideLink'][$k] : '',
+	                        ];
+                    }
+                    $data['slides'] = $slider;
+                    ]]></add>
+        </operation>
+    </file>
+    <file path="admin/model/catalog/category.php">
+        <operation>
+            <search><![CDATA[$category_id = $this->db->getLastId();]]></search>
+            <add position="after" ><![CDATA[
+                    if (isset($data['slide']) && is_array($data['slide'])) {
+                        if (isset($data['category_store'])) {
+                            foreach ($data['category_store'] as $store_id) {
+
+                                $this->db->query("DELETE FROM `" . DB_PREFIX . "setting` WHERE store_id = '" . (int)$store_id . "' AND `key` = '" . $this->db->escape('categorySlider'.$category_id) . "'");
+
+                                $slides = serialize(['slide' => $data['slide'], 'slideLink' => $data['slideLink']]);
+                                $this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$store_id . "', `code` = 'categorySlider', `key` = '" . $this->db->escape('categorySlider'.$category_id) . "', `value` = '" . $slides . "'");
+                            }
+                        }else{
+                            $this->db->query("DELETE FROM `" . DB_PREFIX . "setting` WHERE store_id = '0' AND `key` = '" . $this->db->escape('categorySlider'.$category_id) . "'");
+
+                                $slides = serialize(['slide' => $data['slide'], 'slideLink' => $data['slideLink']]);
+                                $this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '0', `code` = 'categorySlider', `key` = '" . $this->db->escape('categorySlider'.$category_id) . "',  `value` = '" . $slides . "'");
+                        }
+                    }
+                    ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[public function editCategory($category_id, $data)]]></search>
+            <add position="after" ><![CDATA[
+                    if (isset($data['slide']) && is_array($data['slide'])) {
+                        if (isset($data['category_store'])) {
+                            foreach ($data['category_store'] as $store_id) {
+
+                                $this->db->query("DELETE FROM `" . DB_PREFIX . "setting` WHERE store_id = '" . (int)$store_id . "' AND `key` = '" . $this->db->escape('categorySlider'.$category_id) . "'");
+
+                                $slides = serialize(['slide' => $data['slide'], 'slideLink' => $data['slideLink']]);
+                                $this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$store_id . "', `code` = 'categorySlider', `key` = '" . $this->db->escape('categorySlider'.$category_id) . "',  `value` = '" . $slides . "'");
+                            }
+                        }else{
+                            $this->db->query("DELETE FROM `" . DB_PREFIX . "setting` WHERE store_id = '0' AND `key` = '" . $this->db->escape('categorySlider'.$category_id) . "'");
+
+                                $slides = serialize(['slide' => $data['slide'], 'slideLink' => $data['slideLink']]);
+                                $this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '0', `code` = 'categorySlider', `key` = '" . $this->db->escape('categorySlider'.$category_id) . "',  `value` = '" . $slides . "'");
+                        }
+                    }
+                    ]]></add>
+        </operation>
+    </file>
+</modification>
